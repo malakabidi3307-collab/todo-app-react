@@ -1,64 +1,131 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
+const API_URL = "http://localhost:5000/todos";
 
 function useTodo() {
+  const [todos, setTodos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Charger les tâches enregistrées
-  const [tasks, setTasks] = useState(() => {
-    const savedTasks = localStorage.getItem("tasks");
-    return savedTasks ? JSON.parse(savedTasks) : [];
-  });
+  // Récupérer toutes les tâches
+  async function getTodos() {
+    try {
+      setLoading(true);
+      setError("");
 
-  // Texte du champ input
-  const [task, setTask] = useState("");
+      const response = await fetch(API_URL);
 
-  // Indice de la tâche en cours de modification
-  const [editIndex, setEditIndex] = useState(null);
+      if (!response.ok) {
+        throw new Error("Erreur lors de la récupération des tâches");
+      }
 
-  // Sauvegarder dans le Local Storage
+      const data = await response.json();
+
+      setTodos(data);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Créer une tâche
+  async function createTodo(title) {
+    try {
+      setError("");
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          title
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la création");
+      }
+
+      const newTodo = await response.json();
+
+      setTodos((previousTodos) => [
+        ...previousTodos,
+        newTodo
+      ]);
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+  // Supprimer une tâche
+  async function deleteTodo(id) {
+    try {
+      setError("");
+
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la suppression");
+      }
+
+      setTodos((previousTodos) =>
+        previousTodos.filter((todo) => todo.id !== id)
+      );
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+  // Modifier une tâche
+  async function updateTodo(id, title, completed) {
+    try {
+      setError("");
+
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          title,
+          completed
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la modification");
+      }
+
+      const updatedTodo = await response.json();
+
+      setTodos((previousTodos) =>
+        previousTodos.map((todo) =>
+          todo.id === id ? updatedTodo : todo
+        )
+      );
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+  // Charger les tâches automatiquement
   useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
-
-  // Ajouter une tâche
-  function addTask() {
-    if (task.trim() === "") return;
-    setTasks([...tasks, task]);
-    setTask("");
-  }
-
-  // Supprimer
-  function deleteTask(index) {
-    const newTasks = tasks.filter((task, i) => i !== index);
-    setTasks(newTasks);
-
-  }
-
-  // Préparer la modification
-  function startEdit(index) {
-    setTask(tasks[index]);
-    setEditIndex(index);
-
-  }
-
-  // Enregistrer la modification
-  function updateTask() {
-    if (task.trim() === "") return;
-    const newTasks = [...tasks];
-    newTasks[editIndex] = task;
-    setTasks(newTasks);
-    setTask("");
-    setEditIndex(null);
-  }
+    getTodos();
+  }, []);
 
   return {
-    task,
-    setTask,
-    tasks,
-    addTask,
-    deleteTask,
-    startEdit,
-    updateTask,
-    editIndex
+    todos,
+    loading,
+    error,
+    getTodos,
+    createTodo,
+    deleteTodo,
+    updateTodo
   };
 }
+
 export default useTodo;

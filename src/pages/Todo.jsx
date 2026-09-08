@@ -1,49 +1,109 @@
+import { useState } from "react";
 import useTodo from "../hooks/useTodo";
+import "./Todo.css";
 
 function Todo() {
   const {
-    task,
-    setTask,
-    tasks,
-    addTask,
-    deleteTask,
-    startEdit,
-    updateTask,
-    editIndex,
+    todos,
+    loading,
+    error,
+    createTodo,
+    deleteTodo,
+    updateTodo
   } = useTodo();
 
+  const [title, setTitle] = useState("");
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    if (!title.trim()) {
+      return;
+    }
+
+    await createTodo(title);
+
+    setTitle("");
+  }
+
   return (
-    <div className="todo-container">
-      <h1> Todo List</h1>
+    <div className="todo-page">
+      <div className="todo-container">
+        <h1 className="todo-title">Ma Todo List</h1>
 
-      <div className="input-area">
-        <input
-          type="text"
-          placeholder="Entrer une tâche"
-          value={task}
-          onChange={(e) => setTask(e.target.value)}
-        />
+        <p className="todo-subtitle">
+          Organisez vos tâches et restez productif
+        </p>
 
-        {editIndex === null ? (
-          <button onClick={addTask}>Ajouter</button>
-        ) : (
-          <button onClick={updateTask}>Modifier</button>
+        <form
+          className="todo-form"
+          onSubmit={handleSubmit}
+        >
+          <input
+            className="todo-input"
+            type="text"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Écrivez une nouvelle tâche..."
+          />
+
+          <button
+            className="todo-add-button"
+            type="submit"
+          >
+            Ajouter
+          </button>
+        </form>
+
+        {loading && (
+          <p className="todo-loading">
+            Chargement des tâches...
+          </p>
         )}
+
+        {error && (
+          <p className="todo-error">
+            {error}
+          </p>
+        )}
+
+        <ul className="todo-list">
+          {todos.map((todo) => (
+            <li
+              className="todo-item"
+              key={todo.id}
+            >
+              <span className="todo-text">
+                {todo.title}
+              </span>
+
+              <div className="todo-actions">
+                <button
+                  className="todo-delete-button"
+                  onClick={() => deleteTodo(todo.id)}
+                >
+                  Supprimer
+                </button>
+
+                <button
+                  className="todo-complete-button"
+                  onClick={() =>
+                    updateTodo(
+                      todo.id,
+                      todo.title,
+                      !todo.completed
+                    )
+                  }
+                >
+                  {todo.completed
+                    ? "Marquer non terminée"
+                    : "Terminer"}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
-
-      <ul>
-        {tasks.map((item, index) => (
-          <li key={index}>
-            <span>{item}</span>
-
-            <div>
-              <button onClick={() => startEdit(index)}>✏</button>
-
-              <button onClick={() => deleteTask(index)}>🗑</button>
-            </div>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
